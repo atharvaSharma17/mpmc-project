@@ -5,23 +5,20 @@ ORG 000BH
 LJMP TIMER0_ISR
 
 ;-----------------------------------
-; START / INIT
-;-----------------------------------
 START:
-
     MOV P1,#0FFH
 
-    MOV R0,#05H     ; Stock A
-    MOV R1,#05H     ; Stock B
-    MOV R2,#05H     ; Stock C
+    MOV R0,#05H
+    MOV R1,#05H
+    MOV R2,#05H
 
-    MOV 30H,#00H    ; Timer A
-    MOV 31H,#00H    ; Timer B
-    MOV 32H,#00H    ; Timer C
+    MOV 30H,#00H
+    MOV 31H,#00H
+    MOV 32H,#00H
 
-;-----------------------------------
+    MOV 40H,#00H
+
 ; LCD INIT
-;-----------------------------------
     MOV A,#38H
     ACALL COMMAND
     ACALL INIT_DELAY
@@ -38,101 +35,150 @@ START:
     ACALL COMMAND
     ACALL INIT_DELAY
 
-;-----------------------------------
-; TIMER INIT
-;-----------------------------------
     ACALL TIMER0_INIT
+    ACALL SHOW_WELCOME
+    ACALL LONG_DELAY
 
-;-----------------------------------
-; MAIN LOOP
 ;-----------------------------------
 MAIN_LOOP:
 
-    ACALL SHOW_WELCOME
+; -------- A --------
+CHECK_A:
+    JNB P1.3,A_GO
+    LJMP CHECK_B
 
-CHECK_KEYS:
-
-    JB P1.3,CHK_B
+A_GO:
+    ACALL DEBOUNCE
+    JB P1.3,A_SKIP
     ACALL DISPENSE_A
-    SJMP MAIN_LOOP
+    SJMP WAIT_A
 
-CHK_B:
-    JB P1.4,CHK_C
+A_SKIP:
+    LJMP CHECK_B
+
+WAIT_A:
+    JNB P1.3,WAIT_A
+    LJMP MAIN_LOOP
+
+; -------- B --------
+CHECK_B:
+    JNB P1.4,B_GO
+    LJMP CHECK_C
+
+B_GO:
+    ACALL DEBOUNCE
+    JB P1.4,B_SKIP
     ACALL DISPENSE_B
-    SJMP MAIN_LOOP
+    SJMP WAIT_B
 
-CHK_C:
-    JB P1.5,CHK_STOCK
+B_SKIP:
+    LJMP CHECK_C
+
+WAIT_B:
+    JNB P1.4,WAIT_B
+    LJMP MAIN_LOOP
+
+; -------- C --------
+CHECK_C:
+    JNB P1.5,C_GO
+    LJMP CHECK_STOCK
+
+C_GO:
+    ACALL DEBOUNCE
+    JB P1.5,C_SKIP
     ACALL DISPENSE_C
-    SJMP MAIN_LOOP
+    SJMP WAIT_C
 
-CHK_STOCK:
-    JB P1.6,CHK_RESET
+C_SKIP:
+    LJMP CHECK_STOCK
+
+WAIT_C:
+    JNB P1.5,WAIT_C
+    LJMP MAIN_LOOP
+
+; -------- STOCK --------
+CHECK_STOCK:
+    JNB P1.6,S_GO
+    LJMP CHECK_RESET
+
+S_GO:
+    ACALL DEBOUNCE
+    JB P1.6,S_SKIP
     ACALL SHOW_STOCK
-    SJMP MAIN_LOOP
+    SJMP WAIT_S
 
-CHK_RESET:
-    JB P1.7,CHECK_KEYS
+S_SKIP:
+    LJMP CHECK_RESET
+
+WAIT_S:
+    JNB P1.6,WAIT_S
+    LJMP MAIN_LOOP
+
+; -------- RESET --------
+CHECK_RESET:
+    JNB P1.7,RESET_GO
+    LJMP MAIN_LOOP
+
+RESET_GO:
+    ACALL DEBOUNCE
+    JB P1.7,R_SKIP
     LJMP START
 
+R_SKIP:
+    LJMP MAIN_LOOP
+
 ;-----------------------------------
-; DISPENSE A
+; DISPENSE LOGIC (FIXED JZ/JNZ)
 ;-----------------------------------
+
 DISPENSE_A:
     MOV A,30H
-    JNZ MSG_WAIT_CALL
+    JZ DA_NEXT
+    LJMP MSG_WAIT
 
+DA_NEXT:
     MOV A,R0
-    JZ MSG_EMPTY_CALL
-
+    JZ DA_EMPTY
     DEC R0
     MOV 30H,#60
-    ACALL MSG_A_GIVEN
+    ACALL MSG_A
     RET
 
-;-----------------------------------
-; DISPENSE B
-;-----------------------------------
+DA_EMPTY:
+    LJMP MSG_EMPTY
+
 DISPENSE_B:
     MOV A,31H
-    JNZ MSG_WAIT_CALL
+    JZ DB_NEXT
+    LJMP MSG_WAIT
 
+DB_NEXT:
     MOV A,R1
-    JZ MSG_EMPTY_CALL
-
+    JZ DB_EMPTY
     DEC R1
     MOV 31H,#60
-    ACALL MSG_B_GIVEN
+    ACALL MSG_B
     RET
 
-;-----------------------------------
-; DISPENSE C
-;-----------------------------------
+DB_EMPTY:
+    LJMP MSG_EMPTY
+
 DISPENSE_C:
     MOV A,32H
-    JNZ MSG_WAIT_CALL
+    JZ DC_NEXT
+    LJMP MSG_WAIT
 
+DC_NEXT:
     MOV A,R2
-    JZ MSG_EMPTY_CALL
-
+    JZ DC_EMPTY
     DEC R2
     MOV 32H,#60
-    ACALL MSG_C_GIVEN
+    ACALL MSG_C
     RET
 
-;-----------------------------------
-; COMMON MESSAGES
-;-----------------------------------
-MSG_WAIT_CALL:
-    ACALL MSG_WAIT
-    RET
+DC_EMPTY:
+    LJMP MSG_EMPTY
 
-MSG_EMPTY_CALL:
-    ACALL MSG_EMPTY
-    RET
-
-;-----------------------------------
-; SHOW STOCK
 ;-----------------------------------
 SHOW_STOCK:
     MOV A,#01H
@@ -176,8 +222,6 @@ SHOW_STOCK:
     RET
 
 ;-----------------------------------
-; WELCOME DISPLAY
-;-----------------------------------
 SHOW_WELCOME:
     MOV A,#01H
     ACALL COMMAND
@@ -190,14 +234,6 @@ SHOW_WELCOME:
     MOV A,#'C'
     ACALL SEND_DATA
     MOV A,#'U'
-    ACALL SEND_DATA
-    MOV A,#' '
-    ACALL SEND_DATA
-    MOV A,#'M'
-    ACALL SEND_DATA
-    MOV A,#'E'
-    ACALL SEND_DATA
-    MOV A,#'D'
     ACALL SEND_DATA
 
     MOV A,#0C0H
@@ -215,71 +251,27 @@ SHOW_WELCOME:
     RET
 
 ;-----------------------------------
-; MESSAGES
-;-----------------------------------
-MSG_A_GIVEN:
+MSG_A:
     MOV A,#01H
     ACALL COMMAND
     ACALL CLEAR_DELAY
-    MOV A,#80H
-    ACALL COMMAND
     MOV A,#'A'
     ACALL SEND_DATA
-    MOV A,#' '
-    ACALL SEND_DATA
-    MOV A,#'G'
-    ACALL SEND_DATA
-    MOV A,#'I'
-    ACALL SEND_DATA
-    MOV A,#'V'
-    ACALL SEND_DATA
-    MOV A,#'E'
-    ACALL SEND_DATA
-    MOV A,#'N'
-    ACALL SEND_DATA
     RET
 
-MSG_B_GIVEN:
+MSG_B:
     MOV A,#01H
     ACALL COMMAND
     ACALL CLEAR_DELAY
-    MOV A,#80H
-    ACALL COMMAND
     MOV A,#'B'
     ACALL SEND_DATA
-    MOV A,#' '
-    ACALL SEND_DATA
-    MOV A,#'G'
-    ACALL SEND_DATA
-    MOV A,#'I'
-    ACALL SEND_DATA
-    MOV A,#'V'
-    ACALL SEND_DATA
-    MOV A,#'E'
-    ACALL SEND_DATA
-    MOV A,#'N'
-    ACALL SEND_DATA
     RET
 
-MSG_C_GIVEN:
+MSG_C:
     MOV A,#01H
     ACALL COMMAND
     ACALL CLEAR_DELAY
-    MOV A,#80H
-    ACALL COMMAND
     MOV A,#'C'
-    ACALL SEND_DATA
-    MOV A,#' '
-    ACALL SEND_DATA
-    MOV A,#'G'
-    ACALL SEND_DATA
-    MOV A,#'I'
-    ACALL SEND_DATA
-    MOV A,#'V'
-    ACALL SEND_DATA
-    MOV A,#'E'
-    ACALL SEND_DATA
-    MOV A,#'N'
     ACALL SEND_DATA
     RET
 
@@ -287,15 +279,7 @@ MSG_WAIT:
     MOV A,#01H
     ACALL COMMAND
     ACALL CLEAR_DELAY
-    MOV A,#80H
-    ACALL COMMAND
     MOV A,#'W'
-    ACALL SEND_DATA
-    MOV A,#'A'
-    ACALL SEND_DATA
-    MOV A,#'I'
-    ACALL SEND_DATA
-    MOV A,#'T'
     ACALL SEND_DATA
     RET
 
@@ -303,22 +287,10 @@ MSG_EMPTY:
     MOV A,#01H
     ACALL COMMAND
     ACALL CLEAR_DELAY
-    MOV A,#80H
-    ACALL COMMAND
     MOV A,#'E'
-    ACALL SEND_DATA
-    MOV A,#'M'
-    ACALL SEND_DATA
-    MOV A,#'P'
-    ACALL SEND_DATA
-    MOV A,#'T'
-    ACALL SEND_DATA
-    MOV A,#'Y'
     ACALL SEND_DATA
     RET
 
-;-----------------------------------
-; TIMER INIT
 ;-----------------------------------
 TIMER0_INIT:
     MOV TMOD,#01H
@@ -329,33 +301,34 @@ TIMER0_INIT:
     SETB TR0
     RET
 
-;-----------------------------------
-; TIMER ISR (PARALLEL)
-;-----------------------------------
 TIMER0_ISR:
-
     MOV TH0,#0FCH
     MOV TL0,#066H
 
+    INC 40H
+    MOV A,40H
+    CJNE A,#250,EXIT_ISR
+
+    MOV 40H,#00
+
     MOV A,30H
-    JZ SKIP_A
+    JZ SKA
     DEC 30H
-SKIP_A:
+SKA:
 
     MOV A,31H
-    JZ SKIP_B
+    JZ SKB
     DEC 31H
-SKIP_B:
+SKB:
 
     MOV A,32H
-    JZ SKIP_C
+    JZ SKC
     DEC 32H
-SKIP_C:
+SKC:
 
+EXIT_ISR:
     RETI
 
-;-----------------------------------
-; LCD FUNCTIONS (P1.0 RS, P1.2 EN)
 ;-----------------------------------
 COMMAND:
     MOV P2,A
@@ -378,32 +351,35 @@ SEND_DATA:
     RET
 
 ;-----------------------------------
-; DELAYS
-;-----------------------------------
 SHORT_DELAY:
     MOV R7,#20
-S1: DJNZ R7,S1
+SD1: DJNZ R7,SD1
     RET
 
 LONG_DELAY:
     MOV R7,#200
-L1: MOV R6,#255
-L2: DJNZ R6,L2
-    DJNZ R7,L1
+LD1: MOV R6,#255
+LD2: DJNZ R6,LD2
+    DJNZ R7,LD1
     RET
 
 CLEAR_DELAY:
     MOV R7,#50
-C1: MOV R6,#255
-C2: DJNZ R6,C2
-    DJNZ R7,C1
+CD1: MOV R6,#255
+CD2: DJNZ R6,CD2
+    DJNZ R7,CD1
     RET
 
 INIT_DELAY:
     MOV R7,#10
-I1: MOV R6,#255
-I2: DJNZ R6,I2
-    DJNZ R7,I1
+ID1: MOV R6,#255
+ID2: DJNZ R6,ID2
+    DJNZ R7,ID1
+    RET
+
+DEBOUNCE:
+    MOV R7,#200
+DB1: DJNZ R7,DB1
     RET
 
 END
