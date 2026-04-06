@@ -8,6 +8,10 @@ LJMP TIMER0_ISR
 START:
     MOV P1,#0FFH
 
+    CLR P3.7
+    CLR P3.6
+    CLR P3.5
+
     MOV R0,#05H
     MOV R1,#05H
     MOV R2,#05H
@@ -42,7 +46,6 @@ START:
 ;-----------------------------------
 MAIN_LOOP:
 
-; -------- A --------
 CHECK_A:
     JNB P1.3,A_GO
     LJMP CHECK_B
@@ -60,7 +63,6 @@ WAIT_A:
     JNB P1.3,WAIT_A
     LJMP MAIN_LOOP
 
-; -------- B --------
 CHECK_B:
     JNB P1.4,B_GO
     LJMP CHECK_C
@@ -78,7 +80,6 @@ WAIT_B:
     JNB P1.4,WAIT_B
     LJMP MAIN_LOOP
 
-; -------- C --------
 CHECK_C:
     JNB P1.5,C_GO
     LJMP CHECK_STOCK
@@ -96,7 +97,6 @@ WAIT_C:
     JNB P1.5,WAIT_C
     LJMP MAIN_LOOP
 
-; -------- STOCK --------
 CHECK_STOCK:
     JNB P1.6,S_GO
     LJMP CHECK_RESET
@@ -114,7 +114,6 @@ WAIT_S:
     JNB P1.6,WAIT_S
     LJMP MAIN_LOOP
 
-; -------- RESET --------
 CHECK_RESET:
     JNB P1.7,RESET_GO
     LJMP MAIN_LOOP
@@ -128,9 +127,6 @@ R_SKIP:
     LJMP MAIN_LOOP
 
 ;-----------------------------------
-; DISPENSE LOGIC (FIXED JZ/JNZ)
-;-----------------------------------
-
 DISPENSE_A:
     MOV A,30H
     JZ DA_NEXT
@@ -301,6 +297,7 @@ TIMER0_INIT:
     SETB TR0
     RET
 
+;-----------------------------------
 TIMER0_ISR:
     MOV TH0,#0FCH
     MOV TL0,#066H
@@ -325,6 +322,31 @@ SKB:
     JZ SKC
     DEC 32H
 SKC:
+
+; LED CONTROL
+
+    MOV A,30H
+    JZ LA_OFF
+    SETB P3.7
+    SJMP LB_CHK
+LA_OFF:
+    CLR P3.7
+
+LB_CHK:
+    MOV A,31H
+    JZ LB_OFF
+    SETB P3.6
+    SJMP LC_CHK
+LB_OFF:
+    CLR P3.6
+
+LC_CHK:
+    MOV A,32H
+    JZ LC_OFF
+    SETB P3.5
+    SJMP EXIT_ISR
+LC_OFF:
+    CLR P3.5
 
 EXIT_ISR:
     RETI
@@ -382,4 +404,4 @@ DEBOUNCE:
 DB1: DJNZ R7,DB1
     RET
 
-END
+END 
