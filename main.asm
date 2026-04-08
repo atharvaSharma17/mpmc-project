@@ -4,7 +4,7 @@ LJMP START
 ORG 000BH
 LJMP TIMER0_ISR
 
-;-----------------------------------
+
 START:
     MOV P1,#0FFH
 
@@ -175,7 +175,7 @@ DC_NEXT:
 DC_EMPTY:
     LJMP MSG_EMPTY
 
-;-----------------------------------
+
 SHOW_STOCK:
     MOV A,#01H
     ACALL COMMAND
@@ -219,12 +219,58 @@ SHOW_STOCK:
 
 ;-----------------------------------
 SHOW_WELCOME:
+
     MOV A,#01H
     ACALL COMMAND
     ACALL CLEAR_DELAY
 
     MOV A,#80H
     ACALL COMMAND
+
+    MOV A,#'D'
+    ACALL SEND_DATA
+    MOV A,#'o'
+    ACALL SEND_DATA
+    MOV A,#'s'
+    ACALL SEND_DATA
+    MOV A,#'e'
+    ACALL SEND_DATA
+    MOV A,#'W'
+    ACALL SEND_DATA
+    MOV A,#'i'
+    ACALL SEND_DATA
+    MOV A,#'s'
+    ACALL SEND_DATA
+    MOV A,#'e'
+    ACALL SEND_DATA
+
+    ACALL VERY_LONG_DELAY
+
+
+    MOV A,#01H
+    ACALL COMMAND
+    ACALL LONG_DELAY
+
+    MOV A,#80H
+    ACALL COMMAND
+    MOV A,#'+'
+    ACALL SEND_DATA
+
+    MOV A,#0C0H
+    ACALL COMMAND
+    MOV A,#'+'
+    ACALL SEND_DATA
+
+    ACALL VERY_LONG_DELAY
+
+    MOV A,#01H
+    ACALL COMMAND
+    ACALL CLEAR_DELAY
+
+
+    MOV A,#80H
+    ACALL COMMAND
+
     MOV A,#'I'
     ACALL SEND_DATA
     MOV A,#'C'
@@ -234,6 +280,7 @@ SHOW_WELCOME:
 
     MOV A,#0C0H
     ACALL COMMAND
+
     MOV A,#'R'
     ACALL SEND_DATA
     MOV A,#'E'
@@ -244,14 +291,34 @@ SHOW_WELCOME:
     ACALL SEND_DATA
     MOV A,#'Y'
     ACALL SEND_DATA
-    RET
 
+    RET
 ;-----------------------------------
 MSG_A:
     MOV A,#01H
     ACALL COMMAND
     ACALL CLEAR_DELAY
-    MOV A,#'A'
+    MOV A,#'E'
+    ACALL SEND_DATA
+    MOV A,#'P'
+    ACALL SEND_DATA
+    MOV A,#'I'
+    ACALL SEND_DATA
+    MOV A,#'N'
+    ACALL SEND_DATA
+    MOV A,#'E'
+    ACALL SEND_DATA
+    MOV A,#'P'
+    ACALL SEND_DATA
+    MOV A,#'H'
+    ACALL SEND_DATA
+    MOV A,#'R'
+    ACALL SEND_DATA
+    MOV A,#'I'
+    ACALL SEND_DATA
+    MOV A,#'N'
+    ACALL SEND_DATA
+    MOV A,#'E'
     ACALL SEND_DATA
     RET
 
@@ -259,7 +326,21 @@ MSG_B:
     MOV A,#01H
     ACALL COMMAND
     ACALL CLEAR_DELAY
-    MOV A,#'B'
+    MOV A,#'A'
+    ACALL SEND_DATA
+    MOV A,#'T'
+    ACALL SEND_DATA
+    MOV A,#'R'
+    ACALL SEND_DATA
+    MOV A,#'O'
+    ACALL SEND_DATA
+    MOV A,#'P'
+    ACALL SEND_DATA
+    MOV A,#'I'
+    ACALL SEND_DATA
+    MOV A,#'N'
+    ACALL SEND_DATA
+    MOV A,#'E'
     ACALL SEND_DATA
     RET
 
@@ -267,15 +348,55 @@ MSG_C:
     MOV A,#01H
     ACALL COMMAND
     ACALL CLEAR_DELAY
+    MOV A,#'L'
+    ACALL SEND_DATA
+    MOV A,#'I'
+    ACALL SEND_DATA
+    MOV A,#'D'
+    ACALL SEND_DATA
+    MOV A,#'O'
+    ACALL SEND_DATA
     MOV A,#'C'
+    ACALL SEND_DATA
+    MOV A,#'A'
+    ACALL SEND_DATA
+    MOV A,#'I'
+    ACALL SEND_DATA
+    MOV A,#'N'
+    ACALL SEND_DATA
+    MOV A,#'E'
     ACALL SEND_DATA
     RET
 
 MSG_WAIT:
     MOV A,#01H
     ACALL COMMAND
-    ACALL CLEAR_DELAY
+        ACALL CLEAR_DELAY
     MOV A,#'W'
+    ACALL SEND_DATA
+    MOV A,#'A'
+    ACALL SEND_DATA
+    MOV A,#'I'
+    ACALL SEND_DATA
+    MOV A,#'T'
+    ACALL SEND_DATA
+    MOV A,#' '   
+    ACALL SEND_DATA
+    MOV A,#'O'
+    ACALL SEND_DATA
+    MOV A,#'V'
+    ACALL SEND_DATA
+    MOV A,#'E'
+    ACALL SEND_DATA
+    MOV A,#'R'
+    ACALL SEND_DATA
+    MOV A,#'D'
+    ACALL SEND_DATA
+    MOV A,#'O'
+    ACALL SEND_DATA
+    MOV A,#'S'
+    ACALL SEND_DATA
+    MOV A,#'E'
     ACALL SEND_DATA
     RET
 
@@ -390,6 +511,15 @@ CLEAR_DELAY:
 CD1: MOV R6,#255
 CD2: DJNZ R6,CD2
     DJNZ R7,CD1
+    RET
+
+VERY_LONG_DELAY:
+    MOV R5,#10
+
+VLD_LOOP:
+    ACALL LONG_DELAY
+    DJNZ R5,VLD_LOOP
+
     RET
 
 INIT_DELAY:
