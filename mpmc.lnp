@@ -1,3 +1,0 @@
-".\Objects\code.obj" 
-TO ".\Objects\mpmc" 
-PRINT(".\Listings\mpmc.m51") RAMSIZE(256) 
